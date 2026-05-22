@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ChoiceCard, CustomThemeConfig, QType, Question } from "@/lib/quiz-types";
 import { OTHER_OPTION_VALUE } from "@/lib/quiz-types";
 import { MOTIVATIONAL_MESSAGES, getRatingFeedbackCopy } from "@/lib/quiz-constants";
-import { generateRedemptionCode } from "@/lib/redemption-code";
 import { BIRTH_MONTHS, BIRTH_YEARS, calculateAgeFromBirth } from "@/lib/quiz-profile";
 import { resolveQuizThemeStyle, type QuizThemeId } from "@/lib/quiz-themes";
 
@@ -18,6 +17,7 @@ interface Quiz {
   id: string;
   name: string;
   free_gift: string | null;
+  promo_code?: string | null;
   merchant_id: string;
   questions: Question[];
   theme?: string | null;
@@ -111,7 +111,6 @@ function CustomerQuiz() {
   const [firstName, setFirstName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
-  const [redemptionCode, setRedemptionCode] = useState<string | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
 
   useEffect(() => {
@@ -155,6 +154,8 @@ function CustomerQuiz() {
     !isProfileStep && showQuizEmojis && Boolean(emoji);
 
   const hasGift = Boolean(quiz?.free_gift?.trim());
+  const promoCode = quiz?.promo_code?.trim() ?? "";
+  const hasReward = hasGift || Boolean(promoCode);
   const quizOnlyIndex = step - PROFILE_STEPS.length;
   const motivational =
     quizOnlyIndex >= 0 && quizOnlyIndex < MOTIVATIONAL_MESSAGES.length
@@ -164,7 +165,7 @@ function CustomerQuiz() {
         : step === 1
           ? PROFILE_STEPS[1].helper ?? ""
           : step === 2
-            ? hasGift
+            ? hasReward
               ? "🎁 Une surprise vous attend à la fin"
               : "⭐ Encore quelques infos..."
             : "⭐ Encore quelques infos...";
@@ -225,21 +226,20 @@ function CustomerQuiz() {
     return value !== undefined && value !== "";
   })();
 
-  const copyRedemptionCode = async () => {
-    if (!redemptionCode) return;
+  const copyPromoCode = async () => {
+    if (!promoCode) return;
     try {
-      await navigator.clipboard.writeText(redemptionCode);
+      await navigator.clipboard.writeText(promoCode);
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2000);
     } catch {
-      alert(redemptionCode);
+      alert(promoCode);
     }
   };
 
   const submit = async () => {
     if (!quiz) return;
     setSubmitting(true);
-    const code = hasGift ? generateRedemptionCode(quiz.id) : null;
     const { error } = await supabase.from("responses").insert({
       quiz_id: quiz.id,
       merchant_id: quiz.merchant_id,
@@ -248,7 +248,7 @@ function CustomerQuiz() {
       customer_birth_month: birthMonth > 0 ? birthMonth : null,
       customer_birth_year: birthYear > 0 ? birthYear : null,
       customer_gender: gender || null,
-      redemption_code: code,
+      redemption_code: promoCode || null,
       answers: answers as unknown as never,
     });
     setSubmitting(false);
@@ -256,7 +256,6 @@ function CustomerQuiz() {
       alert("Erreur : " + error.message);
       return;
     }
-    if (code) setRedemptionCode(code);
     setPhase("done");
     setTimeout(() => {
       confetti({
@@ -309,38 +308,41 @@ function CustomerQuiz() {
         <h1 className="text-3xl sm:text-4xl font-bold mb-3">
           Félicitations {firstName} !
         </h1>
-        {hasGift && redemptionCode ? (
+        {hasReward ? (
           <>
             <p className="text-gray-500 mb-6 max-w-sm">
-              Voici votre avantage de la part de <strong>{bizName}</strong>
+              Voici votre récompense de la part de <strong>{bizName}</strong>
             </p>
-            <div className="w-full max-w-sm rounded-2xl bg-[#FFD60A] text-[#111111] px-6 py-8 shadow-[0_8px_0_#111111]">
-              <p className="text-3xl sm:text-4xl font-black tracking-wider mb-4">{redemptionCode}</p>
-              <button
-                type="button"
-                onClick={() => void copyRedemptionCode()}
-                className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#111111] text-[#FFD60A] font-bold text-sm hover:opacity-90 transition"
-              >
-                {codeCopied ? (
-                  <>
-                    <Check className="h-4 w-4" /> Copié !
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4" /> 📋 Copier le code
-                  </>
-                )}
-              </button>
-            </div>
-            <p className="mt-5 text-sm text-gray-500 max-w-xs">
-              Montrez ce code à l'accueil pour bénéficier de votre avantage
-            </p>
-            {quiz.free_gift?.trim() && (
-              <div className="w-full max-w-sm mt-6 rounded-2xl border-2 border-[#f0f0f0] bg-[#fafafa] px-6 py-5">
-                <p className="text-4xl mb-2">🎁</p>
-                <p className="text-lg font-bold leading-snug">{quiz.free_gift}</p>
+            {hasGift && (
+              <div className="w-full max-w-sm rounded-2xl bg-[#FFD60A] text-[#111111] px-8 py-8 shadow-[0_8px_0_#111111] mb-6">
+                <p className="text-4xl mb-3">🎁</p>
+                <p className="text-xl sm:text-2xl font-bold leading-snug">{quiz.free_gift}</p>
               </div>
             )}
+            {promoCode && (
+              <div className="w-full max-w-sm rounded-2xl bg-[#FFD60A] text-[#111111] px-6 py-6 shadow-[0_6px_0_#111111]">
+                <p className="text-xs font-semibold uppercase tracking-wide mb-2 opacity-80">Votre code</p>
+                <p className="text-3xl sm:text-4xl font-black tracking-wider mb-4">{promoCode}</p>
+                <button
+                  type="button"
+                  onClick={() => void copyPromoCode()}
+                  className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#111111] text-[#FFD60A] font-bold text-sm hover:opacity-90 transition"
+                >
+                  {codeCopied ? (
+                    <>
+                      <Check className="h-4 w-4" /> Copié !
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" /> 📋 Copier
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+            <p className="mt-6 text-sm text-gray-500 max-w-xs">
+              Montrez cet écran ou donnez ce code à l&apos;accueil
+            </p>
           </>
         ) : (
           <p className="text-gray-500 mb-8 max-w-sm leading-relaxed">
@@ -369,16 +371,16 @@ function CustomerQuiz() {
         </header>
 
         <main className="flex-1 flex flex-col items-center justify-center px-6 pb-8 max-w-lg mx-auto w-full text-center">
-          <p className="text-7xl mb-6">{hasGift ? "🎁" : "💬"}</p>
+          <p className="text-7xl mb-6">{hasReward ? "🎁" : "💬"}</p>
           <h1 className="text-3xl sm:text-4xl font-bold mb-3">
-            {hasGift ? "Une surprise vous attend" : "Votre avis compte"}
+            {hasReward ? "Une surprise vous attend" : "Votre avis compte"}
           </h1>
           <p className="text-gray-600 text-lg mb-8 leading-relaxed">
             Répondez à <strong>{questionCount + PROFILE_STEPS.length}</strong> questions rapides
-            {hasGift ? " et découvrez votre avantage à la fin." : " pour nous aider à nous améliorer."}
+            {hasReward ? " et découvrez votre avantage à la fin." : " pour nous aider à nous améliorer."}
           </p>
 
-          {hasGift ? (
+          {hasReward ? (
           <div className="w-full mb-8 p-5 rounded-2xl border-2 border-[#FFD60A]/40 bg-[#FFD60A]/10 text-center">
             <p className="text-xl font-bold">🎁 Une surprise vous attend à la fin</p>
             <p className="text-sm text-gray-500 mt-2">Complétez le quiz pour la découvrir</p>
@@ -407,7 +409,7 @@ function CustomerQuiz() {
             }}
             className="btn-quiz-continue max-w-sm"
           >
-            {hasGift ? "Débloquer mon cadeau →" : "Commencer le quiz →"}
+            {hasReward ? "Débloquer mon cadeau →" : "Commencer le quiz →"}
           </button>
           <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-4">
             <Lock className="h-3.5 w-3.5" /> Vos données restent privées
@@ -701,7 +703,7 @@ function CustomerQuiz() {
           {submitting
             ? "Envoi en cours…"
             : step === totalSteps - 1
-              ? hasGift
+              ? hasReward
                 ? "Terminer & recevoir mon cadeau 🎁"
                 : "Terminer le quiz ✓"
               : "Continuer →"}

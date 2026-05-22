@@ -17,6 +17,9 @@ export interface Database {
           business_name: string | null;
           business_type: string | null;
           plan: string;
+          objective: string | null;
+          objective_target: string | null;
+          objective_date: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -27,6 +30,9 @@ export interface Database {
           business_name?: string | null;
           business_type?: string | null;
           plan?: string;
+          objective?: string | null;
+          objective_target?: string | null;
+          objective_date?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -37,6 +43,9 @@ export interface Database {
           business_name?: string | null;
           business_type?: string | null;
           plan?: string;
+          objective?: string | null;
+          objective_target?: string | null;
+          objective_date?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -49,6 +58,7 @@ export interface Database {
           name: string;
           business_type: string | null;
           free_gift: string | null;
+          promo_code: string | null;
           questions: Json;
           is_active: boolean;
           theme: string;
@@ -67,6 +77,7 @@ export interface Database {
           name: string;
           business_type?: string | null;
           free_gift?: string | null;
+          promo_code?: string | null;
           questions?: Json;
           is_active?: boolean;
           theme?: string;
@@ -85,6 +96,7 @@ export interface Database {
           name?: string;
           business_type?: string | null;
           free_gift?: string | null;
+          promo_code?: string | null;
           questions?: Json;
           is_active?: boolean;
           theme?: string;

@@ -9,6 +9,9 @@ interface Merchant {
   business_name: string | null;
   business_type: string | null;
   plan: string;
+  objective: string | null;
+  objective_target: string | null;
+  objective_date: string | null;
 }
 
 interface AuthContextValue {

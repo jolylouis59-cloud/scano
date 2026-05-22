@@ -106,6 +106,7 @@ function QuizBuilder() {
   const [objective, setObjective] = useState<BusinessObjective>("loyalty");
   const [offerGift, setOfferGift] = useState(true);
   const [gift, setGift] = useState("");
+  const [promoCode, setPromoCode] = useState("");
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [generated, setGenerated] = useState(false);
@@ -223,6 +224,7 @@ function QuizBuilder() {
         name: storeName.trim(),
         business_type: sectorSummary,
         free_gift: offerGift ? gift.trim() : null,
+        promo_code: offerGift && promoCode.trim() ? promoCode.trim().toUpperCase() : null,
         questions: questions as unknown as never,
         is_active: true,
         theme: quizTheme,
@@ -633,6 +635,7 @@ function QuizBuilder() {
                             </button>
                           ))}
                         </div>
+                        <label className="text-sm font-semibold mb-1 block mt-4">Cadeau offert</label>
                         <input
                           value={gift}
                           onChange={(e) => setGift(e.target.value)}
@@ -641,6 +644,18 @@ function QuizBuilder() {
                         />
                         <p className="text-xs text-muted-foreground mt-2">
                           Soyez précis et généreux dans la formulation — ça augmente le taux de scan de 40%.
+                        </p>
+                        <label className="text-sm font-semibold mb-1 block mt-4">
+                          Code promo à afficher <span className="font-normal text-muted-foreground">(optionnel)</span>
+                        </label>
+                        <input
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                          placeholder="Ex: CAFE2026, BIENVENUE, MERCI10..."
+                          className="w-full px-4 py-3 rounded-lg border border-input bg-background outline-none focus:border-foreground font-mono tracking-wide"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                          Ce code s&apos;affichera sur l&apos;écran final du client. Laissez vide pour ne pas afficher de code.
                         </p>
                       </div>
                     </>
@@ -738,7 +753,10 @@ function QuizBuilder() {
               </div>
               <div className="rounded-lg border border-border p-3">
                 <span className="text-muted-foreground">Cadeau</span>
-                <p className="font-semibold">{offerGift ? gift : "Aucun"}</p>
+                <p className="font-semibold">
+                  {offerGift ? gift : "Aucun"}
+                  {offerGift && promoCode.trim() ? ` · Code ${promoCode.trim().toUpperCase()}` : ""}
+                </p>
               </div>
             </div>
 
