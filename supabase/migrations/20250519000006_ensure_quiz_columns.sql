@@ -11,7 +11,13 @@ ALTER TABLE public.quizzes
 
 -- Compatibilité versions précédentes du code (JSON thème custom)
 ALTER TABLE public.quizzes
-  ADD COLUMN IF NOT EXISTS theme_config JSONB;
+  ADD COLUMN IF NOT EXISTS theme_config JSONB,
+  ADD COLUMN IF NOT EXISTS promo_code TEXT;
+
+ALTER TABLE public.merchants
+  ADD COLUMN IF NOT EXISTS objective TEXT,
+  ADD COLUMN IF NOT EXISTS objective_target TEXT,
+  ADD COLUMN IF NOT EXISTS objective_date DATE;
 
 ALTER TABLE public.responses
   ADD COLUMN IF NOT EXISTS customer_birth_month INTEGER,
@@ -45,7 +51,12 @@ BEGIN
     ADD COLUMN IF NOT EXISTS custom_color_primary TEXT,
     ADD COLUMN IF NOT EXISTS custom_color_background TEXT,
     ADD COLUMN IF NOT EXISTS custom_color_text TEXT,
-    ADD COLUMN IF NOT EXISTS theme_config JSONB;
+    ADD COLUMN IF NOT EXISTS theme_config JSONB,
+    ADD COLUMN IF NOT EXISTS promo_code TEXT;
+  ALTER TABLE public.merchants
+    ADD COLUMN IF NOT EXISTS objective TEXT,
+    ADD COLUMN IF NOT EXISTS objective_target TEXT,
+    ADD COLUMN IF NOT EXISTS objective_date DATE;
   ALTER TABLE public.responses
     ADD COLUMN IF NOT EXISTS customer_birth_month INTEGER,
     ADD COLUMN IF NOT EXISTS customer_birth_year INTEGER,
