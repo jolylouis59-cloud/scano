@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LogOut } from "lucide-react";
@@ -149,14 +149,9 @@ function SettingsPage() {
             <div className="text-2xl font-bold capitalize">{merchant?.plan || "starter"}</div>
             <div className="text-sm text-muted-foreground">Tu peux changer de formule à tout moment.</div>
           </div>
-          <button
-            onClick={() =>
-              toast.info("Configuration Stripe à venir — dis-le moi quand tu veux activer les paiements.")
-            }
-            className="btn-outline-dark"
-          >
+          <Link to="/pricing" className="btn-outline-dark">
             Changer de plan
-          </button>
+          </Link>
         </div>
       </div>
 

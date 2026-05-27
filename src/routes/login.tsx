@@ -22,8 +22,21 @@ function LoginPage() {
       toast.error("Connexion impossible : " + error.message);
       return;
     }
+    const {
+      data: { user: signedInUser },
+    } = await supabase.auth.getUser();
+    const { data: merchant } = signedInUser
+      ? await supabase
+          .from("merchants")
+          .select("plan")
+          .eq("id", signedInUser.id)
+          .maybeSingle()
+      : { data: null };
+    const activePlans = new Set(["starter", "growth", "pro"]);
+    const hasActivePlan = activePlans.has(String((merchant as { plan?: string } | null)?.plan ?? "").toLowerCase());
+
     toast.success("Bienvenue !");
-    navigate({ to: "/dashboard" });
+    navigate({ to: hasActivePlan ? "/dashboard" : "/pricing" });
   };
 
   return (

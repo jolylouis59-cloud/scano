@@ -41,6 +41,7 @@ interface Quiz {
   name: string;
   business_type: string | null;
   free_gift: string | null;
+  promo_code?: string | null;
   is_active: boolean;
   questions: Question[];
 }
@@ -273,7 +274,9 @@ function QuizBuilder() {
                   <div className="font-semibold">{q.name}</div>
                   <div className="text-xs text-muted-foreground">
                     {(q.questions || []).length} questions · {q.business_type || "—"} ·{" "}
-                    {q.free_gift ? `cadeau : ${q.free_gift}` : "sans cadeau"}
+                    {q.free_gift
+                      ? `cadeau : ${q.free_gift}${q.promo_code ? ` · code ${q.promo_code}` : ""}`
+                      : "sans cadeau"}
                   </div>
                 </div>
                 <button

@@ -22,9 +22,18 @@ export function DashboardLayout() {
     if (!loading && !user) navigate({ to: "/login" });
   }, [loading, user, navigate]);
 
+  useEffect(() => {
+    if (loading || !user || !merchant) return;
+    const activePlan = new Set(["starter", "growth", "pro"]);
+    const plan = merchant.plan?.toLowerCase?.() ?? "";
+    if (!activePlan.has(plan)) {
+      navigate({ to: "/pricing" });
+    }
+  }, [loading, user, merchant, navigate]);
+
   useEffect(() => { setOpen(false); }, [path]);
 
-  if (loading || !user) {
+  if (loading || !user || !merchant) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Chargement…</div>;
   }
 

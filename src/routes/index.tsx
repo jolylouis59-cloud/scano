@@ -16,6 +16,7 @@ function Landing() {
             Scano
           </Link>
           <nav className="flex items-center gap-3">
+            <Link to="/pricing" className="text-sm font-semibold hover:underline">Tarifs</Link>
             <Link to="/login" className="text-sm font-semibold hover:underline">Connexion</Link>
             <Link to="/signup" className="btn-yellow !py-2 !px-4 text-sm">Commencer</Link>
           </nav>
