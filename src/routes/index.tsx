@@ -172,8 +172,17 @@ function Landing() {
         </div>
       </section>
 
-      <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Scano. Tous droits réservés.
+      <footer className="border-t border-border py-8 text-center text-sm text-muted-foreground space-y-2">
+        <div className="flex items-center justify-center gap-4">
+          <Link to="/cgu" className="hover:underline">
+            CGU
+          </Link>
+          <span>·</span>
+          <Link to="/privacy" className="hover:underline">
+            Politique de confidentialité
+          </Link>
+        </div>
+        <div>© {new Date().getFullYear()} Scano. Tous droits réservés.</div>
       </footer>
     </div>
   );
