@@ -3,12 +3,20 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { sendTransactionalEmail } from "./send-email";
 
+type PlanId = "starter" | "growth" | "pro";
+
 async function readRawBody(req: VercelRequest): Promise<Buffer> {
   const chunks: Uint8Array[] = [];
   for await (const chunk of req) {
     chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
   }
   return Buffer.concat(chunks);
+}
+
+function normalizePlan(value: string | undefined): PlanId | null {
+  const plan = value?.toLowerCase();
+  if (plan === "starter" || plan === "growth" || plan === "pro") return plan;
+  return null;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -31,6 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const stripe = new Stripe(secretKey);
+  const admin = createClient(supabaseUrl, supabaseServiceRole);
   const rawBody = await readRawBody(req);
   const signature = req.headers["stripe-signature"];
   if (!signature || typeof signature !== "string") {
@@ -46,30 +55,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const updateMerchantPlan = async (merchantId: string, plan: PlanId) => {
+      const { data: merchant, error } = await admin
+        .from("merchants")
+        .update({ plan })
+        .eq("id", merchantId)
+        .select("email, business_name, plan")
+        .maybeSingle();
+      if (error) {
+        console.error("[stripe-webhook] supabase update failed", error.message);
+        throw new Error("Supabase update failed");
+      }
+      return merchant as { email?: string | null; business_name?: string | null } | null;
+    };
+
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       const merchantId = session.metadata?.merchant_id;
-      const plan = session.metadata?.plan?.toLowerCase();
+      const plan = normalizePlan(session.metadata?.plan);
 
-      if (
-        merchantId &&
-        plan &&
-        (plan === "starter" || plan === "growth" || plan === "pro")
-      ) {
-        const admin = createClient(supabaseUrl, supabaseServiceRole);
-        const { data: merchant, error } = await admin
-          .from("merchants")
-          .update({ plan })
-          .eq("id", merchantId)
-          .select("email, business_name, plan")
-          .maybeSingle();
-        if (error) {
-          console.error("[stripe-webhook] supabase update failed", error.message);
-          return res.status(500).json({ error: "Supabase update failed" });
-        }
+      if (merchantId && plan) {
+        const merchant = await updateMerchantPlan(merchantId, plan);
 
         const to =
-          (merchant as { email?: string | null } | null)?.email ||
+          merchant?.email ||
           session.customer_details?.email ||
           session.customer_email ||
           null;
@@ -78,9 +87,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             type: "subscription_active",
             to,
             plan,
-            businessName: (merchant as { business_name?: string | null } | null)?.business_name || undefined,
+            businessName: merchant?.business_name || undefined,
           });
         }
+      }
+    }
+
+    if (event.type === "customer.subscription.created") {
+      const subscription = event.data.object as Stripe.Subscription;
+
+      let merchantId = subscription.metadata?.merchant_id;
+      let plan = normalizePlan(subscription.metadata?.plan);
+
+      // Metadata is set on Checkout Session; recover it from the session linked to this subscription.
+      if (!merchantId || !plan) {
+        const relatedSessions = await stripe.checkout.sessions.list({
+          subscription: subscription.id,
+          limit: 1,
+        });
+        const checkoutSession = relatedSessions.data[0];
+        merchantId = merchantId || checkoutSession?.metadata?.merchant_id;
+        plan = plan || normalizePlan(checkoutSession?.metadata?.plan);
+      }
+
+      if (merchantId && plan) {
+        await updateMerchantPlan(merchantId, plan);
+      } else {
+        console.warn("[stripe-webhook] subscription.created missing merchant_id/plan metadata");
       }
     }
 
