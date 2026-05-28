@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { sendTransactionalEmail } from "./send-email";
 
 async function readRawBody(req: VercelRequest): Promise<Buffer> {
   const chunks: Uint8Array[] = [];
@@ -56,13 +57,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         (plan === "starter" || plan === "growth" || plan === "pro")
       ) {
         const admin = createClient(supabaseUrl, supabaseServiceRole);
-        const { error } = await admin
+        const { data: merchant, error } = await admin
           .from("merchants")
           .update({ plan })
-          .eq("id", merchantId);
+          .eq("id", merchantId)
+          .select("email, business_name, plan")
+          .maybeSingle();
         if (error) {
           console.error("[stripe-webhook] supabase update failed", error.message);
           return res.status(500).json({ error: "Supabase update failed" });
+        }
+
+        const to =
+          (merchant as { email?: string | null } | null)?.email ||
+          session.customer_details?.email ||
+          session.customer_email ||
+          null;
+        if (to) {
+          await sendTransactionalEmail({
+            type: "subscription_active",
+            to,
+            plan,
+            businessName: (merchant as { business_name?: string | null } | null)?.business_name || undefined,
+          });
         }
       }
     }

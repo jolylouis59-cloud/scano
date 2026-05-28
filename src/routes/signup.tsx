@@ -43,6 +43,21 @@ function SignupPage() {
       );
       return;
     }
+
+    // Transactional welcome email (non-blocking for UX).
+    void fetch("/api/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "welcome_signup",
+        to: email,
+        name,
+        businessName,
+      }),
+    }).catch(() => {
+      /* ignore email failures on signup path */
+    });
+
     toast.success("Compte créé !");
     navigate({ to: "/dashboard" });
   };
