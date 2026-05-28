@@ -6,6 +6,7 @@ import {
   createRootRouteWithContext,
   useRouter,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/hooks/use-auth";
 
@@ -54,6 +55,28 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    const clarityProjectId = import.meta.env.VITE_CLARITY_PROJECT_ID;
+    if (!clarityProjectId) return;
+
+    // Microsoft Clarity
+    ((c: Window & { clarity?: (...args: unknown[]) => void }, l: Document, a: "clarity", r: "script", i: string, t?: HTMLScriptElement, y?: HTMLScriptElement) => {
+      c[a] =
+        c[a] ||
+        function (...args: unknown[]) {
+          ((c[a] as unknown as { q?: unknown[][] }).q = (c[a] as unknown as { q?: unknown[][] }).q || []).push(
+            args,
+          );
+        };
+      t = l.createElement(r);
+      t.async = true;
+      t.src = `https://www.clarity.ms/tag/${i}`;
+      y = l.getElementsByTagName(r)[0] as HTMLScriptElement | undefined;
+      y?.parentNode?.insertBefore(t, y);
+    })(window, document, "clarity", "script", clarityProjectId);
+  }, []);
+
   return (
     <>
       <HeadContent />

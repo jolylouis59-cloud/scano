@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, QrCode, Smartphone, BarChart3, Check, Star } from "lucide-react";
+import { ArrowRight, QrCode, Smartphone, BarChart3, Check } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -16,7 +16,7 @@ function Landing() {
             Scano
           </Link>
           <nav className="flex items-center gap-3">
-            <Link to="/pricing" className="text-sm font-semibold hover:underline">Tarifs</Link>
+            <a href="/#pricing" className="text-sm font-semibold hover:underline">Tarifs</a>
             <Link to="/login" className="text-sm font-semibold hover:underline">Connexion</Link>
             <Link to="/signup" className="btn-yellow !py-2 !px-4 text-sm">Commencer</Link>
           </nav>
@@ -42,6 +42,9 @@ function Landing() {
             Je veux savoir ce que pensent mes clients <ArrowRight className="h-5 w-5" />
           </Link>
           <a href="#how" className="btn-outline-dark text-base">Voir comment ça marche</a>
+        </div>
+        <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/15 border border-primary/30 text-sm font-semibold">
+          🎁 1er mois gratuit avec le code <span className="font-black">SCANO1MOIS</span>
         </div>
         <p className="mt-8 text-sm text-muted-foreground">
           ✓ Pas d'abonnement au départ · Setup en 5 min · Résultats dès aujourd'hui
@@ -91,30 +94,23 @@ function Landing() {
         </div>
       </section>
 
-      {/* Social proof */}
+      {/* Early adopters */}
       <section className="bg-secondary py-24">
         <div className="max-w-6xl mx-auto px-5">
-          <h2 className="text-3xl sm:text-5xl text-center font-bold mb-4">Ceux qui l'ont testé ne reviennent pas en arrière.</h2>
-          <p className="text-center text-muted-foreground mb-12 max-w-xl mx-auto">Les premiers commerces qui ont rejoint Scano.</p>
-          <div className="grid md:grid-cols-3 gap-6 mb-16">
-            {[
-              { name: "Thomas R.", biz: "Restaurant, Lille", text: "En 2 semaines j'ai appris que 60% de mes clients venaient via Google Maps. J'ai optimisé ma fiche et mes réservations ont grimpé." },
-              { name: "Nadia K.", biz: "Salon de coiffure, Roubaix", text: "Une cliente m'a dit dans le quiz qu'elle revenait pas à cause du temps d'attente. J'ai changé mon organisation. Elle est revenue la semaine d'après." },
-              { name: "Julien M.", biz: "Boutique mode, Tourcoing", text: "Je savais pas que mes clients venaient principalement pour les soldes. Maintenant j'organise des ventes privées régulières. +30% de CA le mois dernier." },
-            ].map((r, i) => (
-              <div key={i} className="bg-background rounded-2xl p-6 border border-border">
-                <div className="flex gap-1 mb-3">
-                  {Array.from({ length: 5 }).map((_, j) => (
-                    <Star key={j} className="h-4 w-4 fill-primary text-primary" />
-                  ))}
-                </div>
-                <p className="mb-4">{r.text}</p>
-                <div className="text-sm">
-                  <div className="font-semibold">{r.name}</div>
-                  <div className="text-muted-foreground">{r.biz}</div>
-                </div>
-              </div>
-            ))}
+          <h2 className="text-3xl sm:text-5xl text-center font-bold mb-4">
+            Sois parmi les premiers commerces à rejoindre Scano
+          </h2>
+          <p className="text-center text-muted-foreground mb-10 max-w-2xl mx-auto">
+            Lancement en cours : profite des meilleures conditions pour démarrer, récupérer des retours clients
+            exploitables et prendre de l'avance sur ta zone.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 mb-14">
+            <Link to="/signup" className="btn-yellow text-base">
+              Rejoindre Scano maintenant <ArrowRight className="h-5 w-5" />
+            </Link>
+            <a href="/#pricing" className="btn-outline-dark text-base">
+              Voir les offres
+            </a>
           </div>
           <div className="grid grid-cols-3 gap-6 max-w-3xl mx-auto text-center">
             <div><div className="text-3xl sm:text-4xl font-bold text-primary">+340%</div><div className="text-sm text-muted-foreground mt-1">de données clients collectées</div></div>
@@ -125,14 +121,14 @@ function Landing() {
       </section>
 
       {/* Pricing */}
-      <section className="max-w-6xl mx-auto px-5 py-24">
+      <section id="pricing" className="max-w-6xl mx-auto px-5 py-24">
         <h2 className="text-3xl sm:text-5xl text-center font-bold mb-4">Un investissement, pas une dépense.</h2>
         <p className="text-center text-muted-foreground mb-12 max-w-xl mx-auto">Le premier retour client que tu vas avoir va valoir bien plus que l'abonnement.</p>
         <div className="grid md:grid-cols-3 gap-6">
           {[
-            { name: "Starter", price: 29, desc: "Pour tester et voir les premiers retours", features: ["1 quiz", "QR code", "100 réponses/mois", "Dashboard basique"], featured: false },
-            { name: "Growth", price: 69, desc: "Pour vraiment comprendre tes clients", features: ["3 quiz", "QR code", "500 réponses/mois", "Dashboard complet", "Analyse IA"], featured: true },
-            { name: "Pro", price: 149, desc: "Avec un expert qui analyse tout avec toi", features: ["Quiz illimités", "Réponses illimitées", "Dashboard complet", "Analyse IA", "Suivi mensuel personnalisé"], featured: false },
+            { name: "Starter", price: "49,99", desc: "Pour tester et voir les premiers retours", features: ["1 quiz", "QR code", "100 réponses/mois", "Dashboard basique"], featured: false },
+            { name: "Growth", price: "99,99", desc: "Pour vraiment comprendre tes clients", features: ["3 quiz", "QR code", "500 réponses/mois", "Dashboard complet", "Analyse IA"], featured: true },
+            { name: "Pro", price: "199,99", desc: "Avec un expert qui analyse tout avec toi", features: ["Quiz illimités", "Réponses illimitées", "Dashboard complet", "Analyse IA", "Suivi mensuel personnalisé"], featured: false },
           ].map((p) => (
             <div key={p.name} className={`relative rounded-2xl p-8 border-2 ${p.featured ? "border-primary bg-primary/5" : "border-border"}`}>
               {p.featured && (
