@@ -8,7 +8,7 @@ interface Merchant {
   name: string | null;
   business_name: string | null;
   business_type: string | null;
-  plan: string;
+  plan: string | null;
   objective: string | null;
   objective_target: string | null;
   objective_date: string | null;

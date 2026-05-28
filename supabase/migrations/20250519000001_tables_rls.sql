@@ -5,7 +5,7 @@ CREATE TABLE public.merchants (
   name TEXT,
   business_name TEXT,
   business_type TEXT,
-  plan TEXT NOT NULL DEFAULT 'starter',
+  plan TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

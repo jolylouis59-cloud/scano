@@ -33,12 +33,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const origin = (req.headers.origin as string) || `https://${req.headers.host}`;
     const cfg = PLAN_CONFIG[plan];
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      success_url: `${origin}/dashboard?checkout=success`,
-      cancel_url: `${origin}/pricing?checkout=cancelled`,
+      success_url: "https://tryscano.com/dashboard",
+      cancel_url: "https://tryscano.com/pricing",
       customer_email: email,
       metadata: {
         merchant_id: merchantId,
@@ -52,7 +51,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ],
     });
 
-    return res.status(200).json({ sessionId: session.id });
+    if (!session.url) {
+      return res.status(500).json({ error: "URL Checkout Stripe introuvable" });
+    }
+    return res.status(200).json({ url: session.url });
   } catch (error) {
     console.error("[create-checkout-session]", error);
     return res.status(500).json({ error: "Erreur Stripe Checkout" });

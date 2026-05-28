@@ -146,7 +146,7 @@ function SettingsPage() {
         <h2 className="font-bold mb-2">Plan actuel</h2>
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-2xl font-bold capitalize">{merchant?.plan || "starter"}</div>
+            <div className="text-2xl font-bold capitalize">{merchant?.plan || "aucun"}</div>
             <div className="text-sm text-muted-foreground">Tu peux changer de formule à tout moment.</div>
           </div>
           <Link to="/pricing" className="btn-outline-dark">

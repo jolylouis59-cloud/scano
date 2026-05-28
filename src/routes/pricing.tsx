@@ -1,7 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
-import { loadStripe } from "@stripe/stripe-js";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -56,12 +55,6 @@ function PricingPage() {
       return;
     }
 
-    const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-    if (!publishableKey) {
-      toast.error("VITE_STRIPE_PUBLISHABLE_KEY manquant dans .env");
-      return;
-    }
-
     try {
       setSubscribingPlan(plan);
       const res = await fetch("/api/create-checkout-session", {
@@ -73,15 +66,11 @@ function PricingPage() {
           email: user.email,
         }),
       });
-      const payload = (await res.json()) as { sessionId?: string; error?: string };
-      if (!res.ok || !payload.sessionId) {
+      const payload = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !payload.url) {
         throw new Error(payload.error || "Impossible de créer la session Stripe Checkout");
       }
-
-      const stripe = await loadStripe(publishableKey);
-      if (!stripe) throw new Error("Stripe JS indisponible");
-      const { error } = await stripe.redirectToCheckout({ sessionId: payload.sessionId });
-      if (error) throw error;
+      window.location.href = payload.url;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur lors de l'abonnement");
       setSubscribingPlan(null);

@@ -16,6 +16,9 @@ ALTER TABLE public.merchants
   ADD COLUMN IF NOT EXISTS objective TEXT,
   ADD COLUMN IF NOT EXISTS objective_target TEXT,
   ADD COLUMN IF NOT EXISTS objective_date DATE;
+ALTER TABLE public.merchants
+  ALTER COLUMN plan DROP DEFAULT,
+  ALTER COLUMN plan DROP NOT NULL;
 
 ALTER TABLE public.responses
   ADD COLUMN IF NOT EXISTS customer_birth_month INTEGER,
@@ -47,6 +50,9 @@ BEGIN
     ADD COLUMN IF NOT EXISTS objective TEXT,
     ADD COLUMN IF NOT EXISTS objective_target TEXT,
     ADD COLUMN IF NOT EXISTS objective_date DATE;
+  ALTER TABLE public.merchants
+    ALTER COLUMN plan DROP DEFAULT,
+    ALTER COLUMN plan DROP NOT NULL;
   ALTER TABLE public.responses
     ADD COLUMN IF NOT EXISTS customer_birth_month INTEGER,
     ADD COLUMN IF NOT EXISTS customer_birth_year INTEGER,
