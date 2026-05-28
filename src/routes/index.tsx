@@ -43,12 +43,6 @@ function Landing() {
           </Link>
           <a href="#how" className="btn-outline-dark text-base">Voir comment ça marche</a>
         </div>
-        <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/15 border border-primary/30 text-sm font-semibold">
-          Code promo : <span className="font-black">SCANO1MOIS</span> — 1er mois gratuit
-        </div>
-        <p className="mt-8 text-sm text-muted-foreground">
-          ✓ Pas d'abonnement au départ · Setup en 5 min · Résultats dès aujourd'hui
-        </p>
       </section>
 
       {/* How it works */}
