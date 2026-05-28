@@ -38,6 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       mode: "subscription",
       success_url: "https://tryscano.com/dashboard",
       cancel_url: "https://tryscano.com/pricing",
+      allow_promotion_codes: true,
       customer_email: email,
       metadata: {
         merchant_id: merchantId,
