@@ -4,9 +4,9 @@ import Stripe from "stripe";
 type PlanId = "starter" | "growth" | "pro";
 
 const PLAN_CONFIG: Record<PlanId, { priceId: string; label: string }> = {
-  starter: { priceId: "price_1TbiZ3CoGC7y1zXTs3q8JpeX", label: "Starter" },
-  growth: { priceId: "price_1TbiZjCoGC7y1zXTXWZKr6Gd", label: "Growth" },
-  pro: { priceId: "price_1TbiaBCoGC7y1zXTs6iQmo3B", label: "Pro" },
+  starter: { priceId: "price_1TdZ90CbU9nArfQ93Y0iwR71", label: "Starter" },
+  growth: { priceId: "price_1TdZ9RCbU9nArfQ9expYIL7W", label: "Growth" },
+  pro: { priceId: "price_1TdZ9nCbU9nArfQ9CXZZqDtM", label: "Pro" },
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
