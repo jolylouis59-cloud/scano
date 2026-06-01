@@ -1,5 +1,56 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, QrCode, Smartphone, BarChart3, Check } from "lucide-react";
+import { ArrowRight, QrCode, Smartphone, BarChart3, Check, ChevronDown } from "lucide-react";
+
+const FAQ_ITEMS = [
+  {
+    q: "C'est quoi exactement Scano ?",
+    a: "Scano est un QR code que tu poses en caisse. Ton client scanne, répond à 5 questions en 2 minutes depuis son téléphone, et repart avec un cadeau de ta part. Toi tu reçois ses vrais retours directement sur ton téléphone — ce qu'il a aimé, ce qui l'a déçu, s'il revient.",
+  },
+  {
+    q: "C'est quoi le \"cadeau\" que reçoit mon client ?",
+    a: "Tu choisis toi-même : un bon de réduction, un café offert, un échantillon, une remise sur la prochaine visite... C'est toi qui décides du montant et du type. Le client le reçoit automatiquement dès qu'il termine le quiz.",
+  },
+  {
+    q: "Est-ce que ça m'aide à avoir plus d'avis Google ?",
+    a: "Oui. Les clients satisfaits sont automatiquement redirigés vers ta fiche Google à la fin du quiz. C'est le moyen le plus simple d'augmenter ta note sans y penser.",
+  },
+  {
+    q: "Combien de temps pour être opérationnel ?",
+    a: "5 minutes chrono. Tu crées ton compte, tu télécharges ton QR code, tu l'imprimes et tu le poses en caisse. Pas de technique, pas de matériel à commander.",
+  },
+  {
+    q: "Est-ce que mes clients doivent télécharger une application ?",
+    a: "Non. Le quiz s'ouvre directement dans le navigateur de leur téléphone. Un scan suffit.",
+  },
+  {
+    q: "Est-ce que Scano est conforme au RGPD ?",
+    a: "Oui. Les données sont hébergées en Europe, jamais revendues, et tes clients sont informés lors du quiz. Tu peux supprimer toutes les données depuis ton tableau de bord à tout moment.",
+  },
+  {
+    q: "Qui peut voir mes retours clients ?",
+    a: "Uniquement toi. Les retours sont privés et accessibles depuis ton tableau de bord. Ils ne sont pas publiés publiquement.",
+  },
+  {
+    q: "Et si un client laisse un avis négatif ?",
+    a: "C'est exactement pour ça que Scano existe. Un avis négatif en privé, c'est une chance de corriger le tir avant que ce client parte chez le concurrent — ou pire, laisse un avis 1 étoile sur Google.",
+  },
+  {
+    q: "Est-ce que ça marche pour mon type de commerce ?",
+    a: "Scano est conçu pour tous les commerces de proximité : restaurants, coiffeurs, boutiques, salons d'esthétique, boulangeries, garages... Si tu as des clients qui passent en physique, Scano fonctionne.",
+  },
+  {
+    q: "Je peux annuler quand je veux ?",
+    a: "Oui, sans frais ni engagement. Tu annules en un clic depuis ton espace. Aucune surprise sur ta facture.",
+  },
+  {
+    q: "Est-ce que je peux personnaliser les questions du quiz ?",
+    a: "Oui. Tu peux adapter les questions à ton activité pour obtenir les retours les plus pertinents pour toi.",
+  },
+  {
+    q: "Qu'est-ce que je reçois exactement comme informations ?",
+    a: "Pour chaque client : pourquoi il est venu, ce qui l'a déçu ou satisfait, s'il compte revenir, comment il t'a trouvé, et son profil (âge, fréquence de visite). Tout ce qu'il ne te dirait jamais à la caisse.",
+  },
+] as const;
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -148,6 +199,32 @@ function Landing() {
               </Link>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="bg-secondary py-24">
+        <div className="max-w-3xl mx-auto px-5">
+          <h2 className="text-3xl sm:text-5xl text-center font-bold mb-4">Questions fréquentes</h2>
+          <p className="text-center text-muted-foreground mb-12">
+            Tout ce que tu veux savoir avant de te lancer.
+          </p>
+          <div className="space-y-3">
+            {FAQ_ITEMS.map((item) => (
+              <details
+                key={item.q}
+                className="group rounded-2xl border border-border bg-background overflow-hidden"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 font-semibold text-left [&::-webkit-details-marker]:hidden">
+                  {item.q}
+                  <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                </summary>
+                <p className="px-6 pb-5 text-muted-foreground leading-relaxed border-t border-border pt-4">
+                  {item.a}
+                </p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 
