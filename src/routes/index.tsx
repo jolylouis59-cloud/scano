@@ -1,5 +1,357 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, QrCode, Smartphone, BarChart3, Check, ChevronDown, MessageSquare, Star, TrendingUp } from "lucide-react";
+import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
+
+type QuizChoice = { emoji: string; text: string };
+
+const DEFAULT_CHOICES: QuizChoice[] = [
+  { emoji: "😍", text: "Excellent, j'adore !" },
+  { emoji: "👍", text: "Bien, je reviendrai" },
+  { emoji: "😐", text: "Peut mieux faire…" },
+];
+
+const QUESTION_SUGGESTIONS = [
+  "Qu'est-ce qui vous a plu ?",
+  "Reviendrez-vous ?",
+  "Comment nous avez-vous trouvés ?",
+  "Recommanderiez-vous ?",
+] as const;
+
+function SectionQuizBuilder() {
+  const navigate = useNavigate();
+  const [shopName, setShopName] = useState("");
+  const [question, setQuestion] = useState("");
+  const [choices, setChoices] = useState(DEFAULT_CHOICES);
+  const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
+  const [isTestMode, setIsTestMode] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
+  const [leadEmail, setLeadEmail] = useState("");
+  const [leadSubmitting, setLeadSubmitting] = useState(false);
+  const [leadSaved, setLeadSaved] = useState(false);
+  const [leadError, setLeadError] = useState<string | null>(null);
+
+  const filledChoices = choices
+    .map((c, index) => ({ ...c, index }))
+    .filter((c) => c.text.trim());
+
+  const displayShopName = shopName.trim() || "Ton commerce";
+  const displayQuestion = question.trim() || "Ta question apparaîtra ici…";
+
+  const updateChoice = (index: number, field: keyof QuizChoice, value: string) => {
+    setChoices((prev) => prev.map((c, i) => (i === index ? { ...c, [field]: value } : c)));
+  };
+
+  const addChoice = () => {
+    if (choices.length >= 6) return;
+    setChoices((prev) => [...prev, { emoji: "✨", text: "" }]);
+  };
+
+  const handleTestQuiz = () => {
+    if (filledChoices.length === 0) {
+      setTestError("Ajoute au moins une réponse pour tester ton quiz.");
+      return;
+    }
+    setTestError(null);
+    setLeadEmail("");
+    setLeadSaved(false);
+    setLeadError(null);
+    setIsTestMode(true);
+  };
+
+  const handleSaveLead = async () => {
+    const email = leadEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setLeadError("Indique une adresse email valide.");
+      return;
+    }
+
+    setLeadSubmitting(true);
+    setLeadError(null);
+
+    try {
+      const res = await fetch("/api/save-lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (res.ok) {
+        setLeadSaved(true);
+        return;
+      }
+
+      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(payload.error || "Enregistrement impossible");
+    } catch (apiErr) {
+      if (isSupabaseConfigured()) {
+        const { error } = await supabase.from("leads").insert({ email });
+        if (!error) {
+          setLeadSaved(true);
+          return;
+        }
+        setLeadError(error.message);
+      } else {
+        setLeadError(apiErr instanceof Error ? apiErr.message : "Erreur lors de l'envoi");
+      }
+    } finally {
+      setLeadSubmitting(false);
+    }
+  };
+
+  const handleBackToQuiz = () => {
+    setIsTestMode(false);
+    setLeadEmail("");
+    setLeadSaved(false);
+    setLeadError(null);
+  };
+
+  const confirmedChoice =
+    selectedChoice !== null && choices[selectedChoice]?.text.trim()
+      ? choices[selectedChoice]
+      : filledChoices[0];
+
+  return (
+    <section id="quiz-builder" className="bg-[#FAFAFA] py-24 border-y border-[#E5E5E5]">
+      <div className="max-w-6xl mx-auto px-5">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-5xl font-bold text-[#111111] mb-4">Crée ton quiz en 30 secondes</h2>
+          <p className="text-lg text-[#111111]/70 max-w-2xl mx-auto">
+            Vois exactement ce que tes clients verront — avant même de t&apos;inscrire.
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-8 items-start">
+          {/* Builder */}
+          <div className="space-y-6 rounded-2xl border border-[#E5E5E5] bg-white p-6 sm:p-8">
+            <div>
+              <label htmlFor="shop-name" className="block text-sm font-semibold text-[#111111] mb-2">
+                Ton commerce
+              </label>
+              <input
+                id="shop-name"
+                type="text"
+                maxLength={40}
+                value={shopName}
+                onChange={(e) => setShopName(e.target.value)}
+                placeholder="Ex: Boulangerie Martin, Café Roma…"
+                className="w-full rounded-xl border border-[#E5E5E5] bg-[#FAFAFA] px-4 py-3 text-[#111111] placeholder:text-[#111111]/40 focus:outline-none focus:ring-2 focus:ring-[#FFD60A]/50"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="quiz-question" className="block text-sm font-semibold text-[#111111] mb-2">
+                Qu&apos;est-ce que tu veux savoir de tes clients ?
+              </label>
+              <textarea
+                id="quiz-question"
+                rows={2}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder={"Ex: Qu'est-ce qui vous a le plus plu aujourd'hui ?"}
+                className="w-full resize-none rounded-xl border border-[#E5E5E5] bg-[#FAFAFA] px-4 py-3 text-[#111111] placeholder:text-[#111111]/40 focus:outline-none focus:ring-2 focus:ring-[#FFD60A]/50"
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                {QUESTION_SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => setQuestion(suggestion)}
+                    className="rounded-full border border-[#E5E5E5] bg-[#F5F5F5] px-3 py-1.5 text-xs font-medium text-[#111111] hover:border-[#FFD60A] hover:bg-[#FFD60A]/10 transition"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="block text-sm font-semibold text-[#111111] mb-3">Les réponses</span>
+              <div className="space-y-3">
+                {choices.map((choice, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={choice.emoji}
+                      onChange={(e) => updateChoice(index, "emoji", e.target.value)}
+                      maxLength={4}
+                      aria-label={`Emoji réponse ${index + 1}`}
+                      className="w-12 shrink-0 rounded-xl border border-[#E5E5E5] bg-[#FAFAFA] px-2 py-3 text-center text-lg focus:outline-none focus:ring-2 focus:ring-[#FFD60A]/50"
+                    />
+                    <input
+                      type="text"
+                      value={choice.text}
+                      onChange={(e) => updateChoice(index, "text", e.target.value)}
+                      placeholder="Texte de la réponse"
+                      className="flex-1 rounded-xl border border-[#E5E5E5] bg-[#FAFAFA] px-4 py-3 text-[#111111] placeholder:text-[#111111]/40 focus:outline-none focus:ring-2 focus:ring-[#FFD60A]/50"
+                    />
+                  </div>
+                ))}
+              </div>
+              {choices.length < 6 && (
+                <button
+                  type="button"
+                  onClick={addChoice}
+                  className="mt-3 text-sm font-semibold text-[#111111] hover:text-[#111111]/70 transition"
+                >
+                  ＋ Ajouter une réponse
+                </button>
+              )}
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={handleTestQuiz}
+                className="w-full rounded-xl border-2 border-[#FFD60A] bg-[#FFD60A]/15 px-4 py-3.5 text-sm font-bold text-[#111111] hover:bg-[#FFD60A]/25 transition"
+              >
+                👆 Teste ton quiz comme un client
+              </button>
+              {testError && <p className="mt-2 text-sm text-red-600">{testError}</p>}
+            </div>
+          </div>
+
+          {/* Preview + CTA */}
+          <div className="lg:sticky lg:top-8 space-y-6">
+            <div className="mx-auto w-full max-w-[320px] bg-[#111111] rounded-[2.5rem] p-3 shadow-xl">
+              <div className="relative bg-[#F7F5F2] rounded-[2rem] overflow-hidden min-h-[520px]">
+                <div className="flex justify-center pt-3 pb-1">
+                  <div className="w-20 h-5 rounded-full bg-[#333333]" />
+                </div>
+
+                <div
+                  className={`px-5 pb-6 transition-opacity duration-200 ${
+                    isTestMode ? "opacity-0 absolute inset-0 pointer-events-none" : "opacity-100"
+                  }`}
+                >
+                  <div className="flex justify-center mb-4">
+                    <span className="rounded-full bg-[#111111] px-3 py-1 text-[10px] font-bold tracking-wider text-[#FFD60A]">
+                      SCANO
+                    </span>
+                  </div>
+                  <h3 className="text-center text-lg font-bold text-[#111111] mb-1">{displayShopName}</h3>
+                  <p className="text-center text-sm text-[#111111]/70 mb-5 px-2">{displayQuestion}</p>
+                  <div className="space-y-2">
+                    {choices.map((choice, index) => {
+                      const label = choice.text.trim() || "Réponse…";
+                      const isSelected = selectedChoice === index;
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => setSelectedChoice(index)}
+                          className={`w-full flex items-center gap-3 rounded-xl border-2 bg-white px-4 py-3 text-left text-sm font-medium text-[#111111] transition ${
+                            isSelected ? "border-[#FFD60A] shadow-sm" : "border-[#E5E5E5] hover:border-[#111111]/30"
+                          }`}
+                        >
+                          <span className="text-xl">{choice.emoji}</span>
+                          <span>{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-6 text-center text-[10px] text-[#111111]/40">Propulsé par Scano</p>
+                </div>
+
+                <div
+                  className={`px-5 pb-6 transition-opacity duration-200 ${
+                    isTestMode ? "opacity-100" : "opacity-0 absolute inset-0 pointer-events-none"
+                  }`}
+                >
+                  <div className="flex flex-col items-center pt-6 text-center">
+                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#22C55E]/15 text-2xl">
+                      ✅
+                    </div>
+                    <h3 className="text-xl font-bold text-[#111111] mb-2">Merci pour ton avis !</h3>
+                    <p className="text-sm text-[#111111]/70 mb-4">
+                      Tu as répondu : {confirmedChoice?.emoji} {confirmedChoice?.text.trim()}
+                    </p>
+
+                    <div className="w-full mb-4 text-left">
+                      {leadSaved ? (
+                        <p className="rounded-xl border border-[#22C55E]/30 bg-[#22C55E]/10 px-4 py-3 text-sm font-medium text-[#111111]">
+                          Merci ! Ton email est enregistré.
+                        </p>
+                      ) : (
+                        <>
+                          <p className="mb-2 text-sm font-semibold text-[#111111]">
+                            Laisse ton email pour recevoir les résultats
+                          </p>
+                          <input
+                            type="email"
+                            value={leadEmail}
+                            onChange={(e) => setLeadEmail(e.target.value)}
+                            placeholder="prenom@email.com"
+                            disabled={leadSubmitting}
+                            className="mb-2 w-full rounded-xl border border-[#E5E5E5] bg-white px-4 py-2.5 text-sm text-[#111111] placeholder:text-[#111111]/40 focus:outline-none focus:ring-2 focus:ring-[#FFD60A]/50 disabled:opacity-60"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void handleSaveLead()}
+                            disabled={leadSubmitting || !leadEmail.trim()}
+                            className="w-full rounded-xl bg-[#FFD60A] px-4 py-2.5 text-sm font-bold text-[#111111] hover:opacity-90 transition disabled:opacity-50"
+                          >
+                            {leadSubmitting ? "Envoi…" : "Envoyer"}
+                          </button>
+                          {leadError && <p className="mt-2 text-xs text-red-600">{leadError}</p>}
+                        </>
+                      )}
+                    </div>
+
+                    <div className="w-full space-y-3 mb-6">
+                      <div className="rounded-xl border border-[#E5E5E5] bg-white p-4 text-left text-xs text-[#111111]/80">
+                        <div className="font-bold text-[#111111] mb-1">📊 Dans ton dashboard Scano</div>
+                        Cette réponse vient d&apos;apparaître en temps réel
+                      </div>
+                      <div className="rounded-xl border border-[#E5E5E5] bg-white p-4 text-left text-xs text-[#111111]/80">
+                        <div className="font-bold text-[#111111] mb-1">🔔 Notification envoyée</div>
+                        Tu es alerté instantanément sur ton téléphone
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleBackToQuiz}
+                      className="text-sm font-semibold text-[#111111] hover:underline"
+                    >
+                      ↩ Revenir au quiz
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-[#111111] p-6 text-white">
+              <h3 className="text-xl font-bold mb-2">Prêt à le lancer pour de vrai ?</h3>
+              <p className="text-sm text-white/70 mb-5">Ton quiz sera en ligne en moins de 5 minutes.</p>
+              <ul className="space-y-2 mb-6 text-sm">
+                {[
+                  "QR code imprimable inclus",
+                  "Dashboard en temps réel",
+                  "Alertes sur ton téléphone",
+                ].map((feature) => (
+                  <li key={feature} className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FFD60A]" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/signup" })}
+                className="w-full rounded-xl bg-[#FFD60A] px-4 py-3.5 text-sm font-bold text-[#111111] hover:opacity-90 transition"
+              >
+                Créer mon compte — Gratuit
+              </button>
+              <p className="mt-4 text-center text-xs text-white/50">
+                Sans engagement · Résiliation en 1 clic
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 const FAQ_ITEMS = [
   {
@@ -118,6 +470,8 @@ function Landing() {
           </div>
         </div>
       </section>
+
+      <SectionQuizBuilder />
 
       {/* Google reviews */}
       <section className="bg-dark text-dark-foreground py-24 border-t border-white/10">

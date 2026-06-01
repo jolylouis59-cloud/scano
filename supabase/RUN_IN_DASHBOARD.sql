@@ -63,4 +63,24 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.scano_ensure_schema() TO anon, authenticated, service_role;
 
+-- Leads (quiz builder landing)
+CREATE TABLE IF NOT EXISTS public.leads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS leads_created_at_idx ON public.leads (created_at DESC);
+
+ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "leads_anon_insert" ON public.leads;
+CREATE POLICY "leads_anon_insert" ON public.leads
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (
+    char_length(trim(email)) >= 5
+    AND position('@' in trim(email)) > 1
+  );
+
 NOTIFY pgrst, 'reload schema';
