@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, QrCode, Smartphone, BarChart3, Check, ChevronDown } from "lucide-react";
+import { ArrowRight, QrCode, Smartphone, BarChart3, Check, ChevronDown, MessageSquare, Star, TrendingUp } from "lucide-react";
 
 const FAQ_ITEMS = [
   {
@@ -111,6 +111,45 @@ function Landing() {
                   <s.icon className="h-6 w-6" />
                 </div>
                 <div className="text-sm font-semibold text-primary mb-2">Étape {i + 1}</div>
+                <h3 className="text-xl font-bold mb-3">{s.title}</h3>
+                <p className="text-white/70">{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Google reviews */}
+      <section className="bg-dark text-dark-foreground py-24 border-t border-white/10">
+        <div className="max-w-6xl mx-auto px-5">
+          <h2 className="text-3xl sm:text-5xl text-center font-bold mb-4">
+            Booste ta note Google automatiquement.
+          </h2>
+          <p className="text-center text-white/70 text-lg max-w-2xl mx-auto mb-16">
+            Les clients satisfaits sont redirigés vers ta fiche Google à la fin du quiz. Plus d&apos;avis positifs, sans y penser.
+          </p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: MessageSquare,
+                title: "Filtre les insatisfaits",
+                body: "Les clients déçus te parlent en privé. Pas sur Google.",
+              },
+              {
+                icon: Star,
+                title: "Redirige les satisfaits",
+                body: "Ceux qui ont aimé sont invités à laisser un avis Google en 1 clic.",
+              },
+              {
+                icon: TrendingUp,
+                title: "Ta note monte toute seule",
+                body: "Sans relance, sans effort. Le système travaille pour toi.",
+              },
+            ].map((s, i) => (
+              <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-8">
+                <div className="h-12 w-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center mb-6">
+                  <s.icon className="h-6 w-6" />
+                </div>
                 <h3 className="text-xl font-bold mb-3">{s.title}</h3>
                 <p className="text-white/70">{s.body}</p>
               </div>
