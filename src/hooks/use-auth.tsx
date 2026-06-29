@@ -12,6 +12,7 @@ interface Merchant {
   objective: string | null;
   objective_target: string | null;
   objective_date: string | null;
+  google_review_url: string | null;
 }
 
 interface AuthContextValue {

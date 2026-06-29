@@ -5,6 +5,7 @@ import { LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { MERCHANT_OBJECTIVE_OPTIONS, type MerchantObjectiveId } from "@/lib/merchant-objectives";
+import { isValidGoogleReviewUrl, normalizeGoogleReviewUrl } from "@/lib/quiz-response-outcome";
 
 export const Route = createFileRoute("/dashboard/settings")({
   component: SettingsPage,
@@ -18,6 +19,7 @@ function SettingsPage() {
   const [objective, setObjective] = useState<MerchantObjectiveId | "">("");
   const [objectiveTarget, setObjectiveTarget] = useState("");
   const [objectiveDate, setObjectiveDate] = useState("");
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -27,11 +29,16 @@ function SettingsPage() {
       setObjective((merchant.objective as MerchantObjectiveId) || "");
       setObjectiveTarget(merchant.objective_target ?? "");
       setObjectiveDate(merchant.objective_date ? merchant.objective_date.slice(0, 10) : "");
+      setGoogleReviewUrl(merchant.google_review_url ?? "");
     }
   }, [merchant]);
 
   const save = async () => {
     if (!user) return;
+    const normalizedGoogleUrl = normalizeGoogleReviewUrl(googleReviewUrl);
+    if (normalizedGoogleUrl && !isValidGoogleReviewUrl(normalizedGoogleUrl)) {
+      return toast.error("Lien Google Avis invalide (utilisez une URL complète https://…)");
+    }
     setSaving(true);
     const { error } = await supabase
       .from("merchants")
@@ -40,6 +47,7 @@ function SettingsPage() {
         objective: objective || null,
         objective_target: objectiveTarget.trim() || null,
         objective_date: objectiveDate || null,
+        google_review_url: normalizedGoogleUrl || null,
       })
       .eq("id", user.id);
     setSaving(false);
@@ -82,6 +90,29 @@ function SettingsPage() {
         </div>
         <button onClick={save} disabled={saving} className="btn-yellow">
           {saving ? "Enregistrement..." : "Enregistrer"}
+        </button>
+      </div>
+
+      <div className="bg-background border border-border rounded-2xl p-6 space-y-4">
+        <h2 className="font-bold">Google Avis</h2>
+        <p className="text-sm text-muted-foreground">
+          Les clients satisfaits (note ≥ 8/10, ou recommandation « Oui » si la note est absente ou &gt; 6/10) verront un bouton pour laisser un avis
+          Google à la fin du quiz. Une note ≤ 6/10 bloque toujours ce bouton. Laissez vide pour désactiver.
+        </p>
+        <div>
+          <label className="text-sm font-semibold mb-1 block">
+            Lien vers votre fiche Google Avis
+          </label>
+          <input
+            type="url"
+            value={googleReviewUrl}
+            onChange={(e) => setGoogleReviewUrl(e.target.value)}
+            placeholder="https://g.page/votre-commerce ou lien Google Maps"
+            className="w-full px-4 py-3 rounded-lg border border-input outline-none focus:border-foreground"
+          />
+        </div>
+        <button onClick={save} disabled={saving} className="btn-outline-dark">
+          {saving ? "Enregistrement..." : "Enregistrer le lien Google"}
         </button>
       </div>
 

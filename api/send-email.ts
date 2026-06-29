@@ -15,7 +15,16 @@ type SubscriptionPayload = {
   businessName?: string;
 };
 
-type SendEmailPayload = WelcomePayload | SubscriptionPayload;
+type DissatisfiedResponsePayload = {
+  type: "dissatisfied_response";
+  to: string;
+  businessName: string;
+  satisfactionRating: number;
+  improvementText?: string | null;
+  openText?: string | null;
+};
+
+type SendEmailPayload = WelcomePayload | SubscriptionPayload | DissatisfiedResponsePayload;
 
 function escapeHtml(value: string): string {
   return value
@@ -57,6 +66,38 @@ function planLabel(plan: string): string {
   return plan;
 }
 
+function dissatisfiedHtml(payload: DissatisfiedResponsePayload): string {
+  const name = payload.businessName.trim() || "Votre commerce";
+
+  const improvementBlock = payload.improvementText?.trim()
+    ? `<p style="font-size:15px; line-height:1.6; margin:0 0 12px;"><strong>Qu'est-ce qui pourrait être amélioré ?</strong><br/>${escapeHtml(payload.improvementText.trim())}</p>`
+    : `<p style="font-size:15px; line-height:1.6; margin:0 0 12px; color:#666;">Aucune réponse à la question « Qu'est-ce qui pourrait être amélioré ? »</p>`;
+
+  const openBlock = payload.openText?.trim()
+    ? `<p style="font-size:15px; line-height:1.6; margin:0 0 20px;"><strong>Dernier mot du client :</strong><br/><em>${escapeHtml(payload.openText.trim())}</em></p>`
+    : "";
+
+  return `
+    <div style="font-family: Inter, Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 24px; color: #111111;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom: 20px;">
+        <img src="https://tryscano.com/logo.png" alt="Scano" width="32" height="32" />
+        <strong style="font-size:20px;">Scano</strong>
+      </div>
+      <h1 style="font-size:24px; margin:0 0 12px;">⚠️ Client insatisfait — ${escapeHtml(name)}</h1>
+      <p style="font-size:16px; line-height:1.6; margin:0 0 20px;">
+        Note de satisfaction :
+        <strong style="color:#EF4444;">${payload.satisfactionRating}/10</strong>
+      </p>
+      ${improvementBlock}
+      ${openBlock}
+      <a href="https://tryscano.com/dashboard/responses"
+         style="display:inline-block; background:#FFD60A; color:#111111; text-decoration:none; font-weight:700; padding:12px 18px; border-radius:10px;">
+        Voir la réponse complète
+      </a>
+    </div>
+  `;
+}
+
 function subscriptionHtml(payload: SubscriptionPayload): string {
   const name = payload.businessName?.trim() || "Votre commerce";
   return `
@@ -95,6 +136,15 @@ export async function sendTransactionalEmail(payload: SendEmailPayload) {
       to: payload.to,
       subject: "Bienvenue sur Scano 👋",
       html: welcomeHtml(payload),
+    });
+  }
+
+  if (payload.type === "dissatisfied_response") {
+    return resend.emails.send({
+      from,
+      to: payload.to,
+      subject: `⚠️ Client insatisfait (${payload.satisfactionRating}/10) — ${payload.businessName}`,
+      html: dissatisfiedHtml(payload),
     });
   }
 

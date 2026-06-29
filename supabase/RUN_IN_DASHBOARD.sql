@@ -15,7 +15,8 @@ ALTER TABLE public.quizzes
 ALTER TABLE public.merchants
   ADD COLUMN IF NOT EXISTS objective TEXT,
   ADD COLUMN IF NOT EXISTS objective_target TEXT,
-  ADD COLUMN IF NOT EXISTS objective_date DATE;
+  ADD COLUMN IF NOT EXISTS objective_date DATE,
+  ADD COLUMN IF NOT EXISTS google_review_url TEXT;
 ALTER TABLE public.merchants
   ALTER COLUMN plan DROP DEFAULT,
   ALTER COLUMN plan DROP NOT NULL;
@@ -49,7 +50,8 @@ BEGIN
   ALTER TABLE public.merchants
     ADD COLUMN IF NOT EXISTS objective TEXT,
     ADD COLUMN IF NOT EXISTS objective_target TEXT,
-    ADD COLUMN IF NOT EXISTS objective_date DATE;
+    ADD COLUMN IF NOT EXISTS objective_date DATE,
+    ADD COLUMN IF NOT EXISTS google_review_url TEXT;
   ALTER TABLE public.merchants
     ALTER COLUMN plan DROP DEFAULT,
     ALTER COLUMN plan DROP NOT NULL;

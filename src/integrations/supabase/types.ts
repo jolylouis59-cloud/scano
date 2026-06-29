@@ -20,6 +20,7 @@ export interface Database {
           objective: string | null;
           objective_target: string | null;
           objective_date: string | null;
+          google_review_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -33,6 +34,7 @@ export interface Database {
           objective?: string | null;
           objective_target?: string | null;
           objective_date?: string | null;
+          google_review_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -46,6 +48,7 @@ export interface Database {
           objective?: string | null;
           objective_target?: string | null;
           objective_date?: string | null;
+          google_review_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };

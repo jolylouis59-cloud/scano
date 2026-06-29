@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useCallback, type CSSProperties } from "react";
 import confetti from "canvas-confetti";
-import { Star, Lock, Copy, Check } from "lucide-react";
+import { Star, Lock, Copy, Check, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ChoiceCard, CustomThemeConfig, QType, Question } from "@/lib/quiz-types";
 import { OTHER_OPTION_VALUE } from "@/lib/quiz-types";
 import { MOTIVATIONAL_MESSAGES, getRatingFeedbackCopy } from "@/lib/quiz-constants";
 import { BIRTH_MONTHS, BIRTH_YEARS, calculateAgeFromBirth } from "@/lib/quiz-profile";
 import { resolveQuizThemeStyle, type QuizThemeId } from "@/lib/quiz-themes";
+import { evaluateQuizOutcome, type QuizOutcome } from "@/lib/quiz-response-outcome";
 
 export const Route = createFileRoute("/quiz/$quizId")({
   component: CustomerQuiz,
@@ -112,6 +113,8 @@ function CustomerQuiz() {
   const [submitting, setSubmitting] = useState(false);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [codeCopied, setCodeCopied] = useState(false);
+  const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(null);
+  const [quizOutcome, setQuizOutcome] = useState<QuizOutcome | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -125,10 +128,12 @@ function CustomerQuiz() {
         setQuiz(q as unknown as Quiz);
         const { data: m } = await supabase
           .from("merchants")
-          .select("business_name")
+          .select("business_name, google_review_url")
           .eq("id", (q as { merchant_id: string }).merchant_id)
           .maybeSingle();
-        setBizName((m as { business_name: string | null } | null)?.business_name || "Notre commerce");
+        const merchant = m as { business_name: string | null; google_review_url: string | null } | null;
+        setBizName(merchant?.business_name || "Notre commerce");
+        setGoogleReviewUrl(merchant?.google_review_url?.trim() || null);
       }
       setLoading(false);
     })();
@@ -240,6 +245,7 @@ function CustomerQuiz() {
   const submit = async () => {
     if (!quiz) return;
     setSubmitting(true);
+    const outcome = evaluateQuizOutcome(answers, quizQuestions);
     const { error } = await supabase.from("responses").insert({
       quiz_id: quiz.id,
       merchant_id: quiz.merchant_id,
@@ -256,7 +262,17 @@ function CustomerQuiz() {
       alert("Erreur : " + error.message);
       return;
     }
+    setQuizOutcome(outcome);
     setPhase("done");
+    if (outcome.triggerMerchantAlert) {
+      void fetch("/api/notify-merchant-alert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ merchantId: quiz.merchant_id, quizId: quiz.id }),
+      }).catch(() => {
+        /* alerte non bloquante pour le client */
+      });
+    }
     setTimeout(() => {
       confetti({
         particleCount: 180,
@@ -302,6 +318,9 @@ function CustomerQuiz() {
   }
 
   if (phase === "done") {
+    const showGoogleReview =
+      Boolean(googleReviewUrl) && (quizOutcome?.showGoogleReview ?? false);
+
     return (
       <div className="quiz-themed min-h-[100dvh] flex flex-col items-center justify-center px-6 text-center" style={themeStyle}>
         <p className="text-6xl mb-4">🎉</p>
@@ -320,7 +339,7 @@ function CustomerQuiz() {
               </div>
             )}
             {promoCode && (
-              <div className="w-full max-w-sm rounded-2xl bg-[#FFD60A] text-[#111111] px-6 py-6 shadow-[0_6px_0_#111111]">
+              <div className="w-full max-w-sm rounded-2xl bg-[#FFD60A] text-[#111111] px-6 py-6 shadow-[0_6px_0_#111111] mb-6">
                 <p className="text-xs font-semibold uppercase tracking-wide mb-2 opacity-80">Votre code</p>
                 <p className="text-3xl sm:text-4xl font-black tracking-wider mb-4">{promoCode}</p>
                 <button
@@ -349,10 +368,27 @@ function CustomerQuiz() {
             Merci pour vos réponses ! Votre avis aide <strong>{bizName}</strong> à mieux vous servir.
           </p>
         )}
+
+        {showGoogleReview && googleReviewUrl && (
+          <div className="w-full max-w-sm mt-6 mb-2">
+            <p className="text-sm text-gray-500 mb-3">
+              Vous avez aimé votre expérience ? Aidez <strong>{bizName}</strong> en quelques secondes.
+            </p>
+            <a
+              href={googleReviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-quiz-continue inline-flex items-center justify-center gap-2 w-full"
+            >
+              Laisser un avis Google <ExternalLink className="h-4 w-4" />
+            </a>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={() => window.close()}
-          className="btn-quiz-continue max-w-sm mt-8"
+          className={`btn-quiz-continue max-w-sm ${showGoogleReview ? "mt-4 bg-white text-[#111111] border-2 border-[#e5e5e5] shadow-none" : "mt-8"}`}
         >
           J'ai compris ✓
         </button>
