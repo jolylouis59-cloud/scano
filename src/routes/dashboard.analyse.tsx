@@ -19,9 +19,11 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import type { Question } from "@/lib/quiz-types";
+import SectorBenchmark from "@/components/dashboard/SectorBenchmark";
 import {
   buildAnalysisReport,
   MIN_RESPONSES_FOR_ANALYSIS,
+  type AnalysisInsight,
   type AnalysisReport,
   type ResponseRow,
   type Sentiment,
@@ -97,6 +99,25 @@ function SentimentTag({ sentiment }: { sentiment: Sentiment }) {
   );
 }
 
+function toSectorBenchmarkName(businessType: string | null): string | undefined {
+  if (!businessType?.trim()) return undefined;
+  const lower = businessType.toLowerCase();
+  if (lower.includes("coiffure") || lower.includes("coiffeur")) return "coiffeurs";
+  if (lower.includes("barber") || lower.includes("barbier")) return "barbiers";
+  if (lower.includes("restaurant") || lower.includes("fast-food") || lower.includes("fastfood"))
+    return "restaurants";
+  if (lower.includes("café") || lower.includes("cafe") || lower.includes("brasserie")) return "cafés";
+  if (lower.includes("beauté") || lower.includes("esthétique") || lower.includes("spa")) return "instituts";
+  if (lower.includes("boulangerie") || lower.includes("pâtisserie")) return "boulangeries";
+  if (lower.includes("boutique") || lower.includes("mode")) return "boutiques";
+  return lower;
+}
+
+function extractPriceComplaintRate(weaknesses: AnalysisInsight[]): number | undefined {
+  const priceRelated = weaknesses.find((w) => /prix|cher|tarif|coût|cout/i.test(w.label));
+  return priceRelated?.percent;
+}
+
 function SectionTitle({
   icon: Icon,
   title,
@@ -127,20 +148,23 @@ function AnalysePage() {
   const [generating, setGenerating] = useState(false);
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null);
+  const [businessType, setBusinessType] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const [respRes, quizRes] = await Promise.all([
+    const [respRes, quizRes, merchantRes] = await Promise.all([
       supabase
         .from("responses")
         .select("id, quiz_id, customer_age, customer_gender, answers, completed_at")
         .eq("merchant_id", user.id)
         .order("completed_at", { ascending: false }),
       supabase.from("quizzes").select("questions").eq("merchant_id", user.id),
+      supabase.from("merchants").select("business_type").eq("id", user.id).maybeSingle(),
     ]);
     const r = (respRes.data as ResponseRow[]) || [];
     setRows(r);
+    setBusinessType(merchantRes.data?.business_type ?? null);
     const qs: Question[] = [];
     for (const q of quizRes.data || []) {
       const list = (q as { questions: Question[] }).questions;
@@ -174,6 +198,14 @@ function AnalysePage() {
   }, [loadData]);
 
   const missing = MIN_RESPONSES_FOR_ANALYSIS - rows.length;
+  const merchantData = report
+    ? {
+        score: report.globalScore,
+        percentile: undefined as number | undefined,
+        priceComplaintRate: extractPriceComplaintRate(report.weaknesses),
+      }
+    : null;
+  const sector = toSectorBenchmarkName(businessType);
   const lastDate = report?.lastResponseDate
     ? new Date(report.lastResponseDate).toLocaleDateString("fr-FR", {
         day: "numeric",
@@ -337,6 +369,15 @@ function AnalysePage() {
               </ul>
             )}
           </section>
+
+          {merchantData && (
+            <SectorBenchmark
+              sector={sector}
+              score={merchantData.score}
+              sectorAveragePercentile={merchantData.percentile}
+              priceComplaintRate={merchantData.priceComplaintRate}
+            />
+          )}
 
           {/* 6. Intentions futures */}
           <section className="rounded-2xl border border-border bg-background p-6 shadow-sm">

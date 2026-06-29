@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, QrCode, Smartphone, BarChart3, Check, ChevronDown, MessageSquare, Star, TrendingUp } from "lucide-react";
+import TrustSection from "@/components/landing/TrustSection";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 
 type QuizChoice = { emoji: string; text: string };
@@ -447,6 +448,8 @@ function Landing() {
           <a href="#how" className="btn-outline-dark text-base">Voir comment ça marche</a>
         </div>
       </section>
+
+      <TrustSection />
 
       {/* How it works */}
       <section id="how" className="bg-dark text-dark-foreground py-24">
