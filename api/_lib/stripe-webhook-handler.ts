@@ -1,0 +1,132 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
+import { sendTransactionalEmail } from "./transactional-email.js";
+
+type PlanId = "starter" | "growth" | "pro";
+
+/** Corps brut requis pour stripe.webhooks.constructEvent (signature Stripe). */
+async function readRawBody(req: VercelRequest): Promise<Buffer> {
+  if (Buffer.isBuffer(req.body)) {
+    return req.body;
+  }
+  if (typeof req.body === "string") {
+    return Buffer.from(req.body, "utf8");
+  }
+
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
+function normalizePlan(value: string | undefined): PlanId | null {
+  const plan = value?.toLowerCase();
+  if (plan === "starter" || plan === "growth" || plan === "pro") return plan;
+  return null;
+}
+
+export default async function stripeWebhookHandler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseServiceRole =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!secretKey || !webhookSecret || !supabaseUrl || !supabaseServiceRole) {
+    return res.status(500).json({
+      error:
+        "Variables manquantes: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY",
+    });
+  }
+
+  const stripe = new Stripe(secretKey);
+  const admin = createClient(supabaseUrl, supabaseServiceRole);
+  const rawBody = await readRawBody(req);
+  const signature = req.headers["stripe-signature"];
+  if (!signature || typeof signature !== "string") {
+    return res.status(400).json({ error: "Signature Stripe manquante" });
+  }
+
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+  } catch (err) {
+    console.error("[stripe-webhook] signature error", err);
+    return res.status(400).json({ error: "Invalid signature" });
+  }
+
+  try {
+    const updateMerchantPlan = async (merchantId: string, plan: PlanId) => {
+      const { data: merchant, error } = await admin
+        .from("merchants")
+        .update({ plan })
+        .eq("id", merchantId)
+        .select("email, business_name, plan")
+        .maybeSingle();
+      if (error) {
+        console.error("[stripe-webhook] supabase update failed", error.message);
+        throw new Error("Supabase update failed");
+      }
+      return merchant as { email?: string | null; business_name?: string | null } | null;
+    };
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const merchantId = session.metadata?.merchant_id;
+      const plan = normalizePlan(session.metadata?.plan);
+
+      if (merchantId && plan) {
+        const merchant = await updateMerchantPlan(merchantId, plan);
+
+        const to =
+          merchant?.email ||
+          session.customer_details?.email ||
+          session.customer_email ||
+          null;
+        if (to) {
+          await sendTransactionalEmail({
+            type: "subscription_active",
+            to,
+            plan,
+            businessName: merchant?.business_name || undefined,
+          });
+        }
+      }
+    }
+
+    if (event.type === "customer.subscription.created") {
+      const subscription = event.data.object as Stripe.Subscription;
+
+      let merchantId = subscription.metadata?.merchant_id;
+      let plan = normalizePlan(subscription.metadata?.plan);
+
+      if (!merchantId || !plan) {
+        const relatedSessions = await stripe.checkout.sessions.list({
+          subscription: subscription.id,
+          limit: 1,
+        });
+        const checkoutSession = relatedSessions.data[0];
+        merchantId = merchantId || checkoutSession?.metadata?.merchant_id;
+        plan = plan || normalizePlan(checkoutSession?.metadata?.plan);
+      }
+
+      if (merchantId && plan) {
+        await updateMerchantPlan(merchantId, plan);
+      } else {
+        console.warn("[stripe-webhook] subscription.created missing merchant_id/plan metadata");
+      }
+    }
+
+    return res.status(200).json({ received: true });
+  } catch (error) {
+    console.error("[stripe-webhook] handler error", error);
+    return res.status(500).json({ error: "Webhook processing failed" });
+  }
+}
